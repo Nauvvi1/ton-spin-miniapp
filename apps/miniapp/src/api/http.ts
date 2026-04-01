@@ -1,6 +1,7 @@
 import { getTelegramInitData } from "../lib/telegram";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
+const RAW_API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001";
+const API_BASE_URL = RAW_API_BASE_URL.replace(/\/$/, "");
 
 interface RequestOptions extends RequestInit {
   path: string;
@@ -22,6 +23,7 @@ export async function apiRequest<T>({ path, headers, ...rest }: RequestOptions):
 
   if (!response.ok) {
     const fallback = "Request failed";
+
     try {
       const payload = (await response.json()) as { message?: string };
       throw new Error(payload.message ?? fallback);

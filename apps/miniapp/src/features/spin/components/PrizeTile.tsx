@@ -1,12 +1,11 @@
-import { formatTon, getPrizeById } from "../../../../../../shared/prize-catalog";
+import { formatTonValue, getPrizeById } from "../../../../../../shared/prize-catalog";
 
 interface PrizeTileProps {
   prizeId: string;
-  isCenter?: boolean;
   isWinningTarget?: boolean;
 }
 
-export function PrizeTile({ prizeId, isCenter = false, isWinningTarget = false }: PrizeTileProps) {
+export function PrizeTile({ prizeId, isWinningTarget = false }: PrizeTileProps) {
   const prize = getPrizeById(prizeId);
 
   return (
@@ -14,7 +13,6 @@ export function PrizeTile({ prizeId, isCenter = false, isWinningTarget = false }
       className={[
         "prize-tile",
         prize.tone === "gold" ? "prize-tile--gold" : "prize-tile--blue",
-        isCenter ? "is-center" : "",
         isWinningTarget ? "is-target" : ""
       ]
         .filter(Boolean)
@@ -24,10 +22,10 @@ export function PrizeTile({ prizeId, isCenter = false, isWinningTarget = false }
       <div className="prize-tile__ticket-cut right" />
 
       <div className="prize-tile__coin">
-        <span>◈</span>
+        <img className="prize-tile__coin-image" src="/assets/ton.png" alt="TON" />
       </div>
 
-      <div className="prize-tile__amount">{formatTon(prize.amount)}</div>
+      <div className="prize-tile__amount">{formatTonValue(prize.amount)}</div>
       <div className="prize-tile__caption">TON</div>
     </div>
   );

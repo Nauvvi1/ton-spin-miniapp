@@ -11,19 +11,19 @@ export function ResultToast({ result, onClose }: ResultToastProps) {
     return null;
   }
 
-  const isWin = result.outcome === "win";
+  const isHighlight = result.prizeAmount >= 1;
 
   return (
     <div className="result-toast-backdrop" onClick={onClose}>
-      <div className={`result-toast ${isWin ? "is-win" : "is-lose"}`} onClick={(event) => event.stopPropagation()}>
-        <div className="result-toast__badge">{isWin ? "WIN" : "LOSE"}</div>
-        <h3>{isWin ? "Хороший спин" : "Не повезло"}</h3>
-        <p className="result-toast__amount">{formatTon(result.prizeAmount)}</p>
-        <p className="result-toast__meta">
-          {isWin ? "Сервер выбрал выигрышный bucket 50/50" : "Сервер выбрал проигрышный bucket 50/50"}
-        </p>
+      <div
+        className={`result-toast ${isHighlight ? "is-highlight" : "is-regular"}`}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="result-toast__badge">Prize received</div>
+        <h3>{formatTon(result.prizeAmount)}</h3>
+        <p className="result-toast__meta">Your balance is now {formatTon(result.newBalance)}.</p>
         <button className="primary-button" onClick={onClose}>
-          Продолжить
+          Continue
         </button>
       </div>
     </div>

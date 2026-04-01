@@ -1,6 +1,5 @@
 import crypto from "node:crypto";
 import {
-  BASE_REEL_SEQUENCE,
   MAX_SERVER_STOP_INDEX,
   MIN_SERVER_STOP_INDEX,
   SPIN_COST,
@@ -19,8 +18,8 @@ function randomInt(min: number, max: number): number {
   return crypto.randomInt(min, max + 1);
 }
 
-function pickBucket(): "win" | "lose" {
-  return crypto.randomInt(0, 2) === 0 ? "lose" : "win";
+function pickBucket(): "base" | "boost" {
+  return crypto.randomInt(0, 2) === 0 ? "base" : "boost";
 }
 
 function weightedPick(prizes: PrizeDefinition[]): PrizeDefinition {
@@ -29,6 +28,7 @@ function weightedPick(prizes: PrizeDefinition[]): PrizeDefinition {
 
   for (const prize of prizes) {
     cursor -= prize.weight;
+
     if (cursor <= 0) {
       return prize;
     }
@@ -59,7 +59,7 @@ export class SpinService {
     const user = userStore.getOrCreate(telegramId);
 
     if (user.balance < SPIN_COST) {
-      throw new Error("Недостаточно баланса для спина");
+      throw new Error("Not enough balance for a spin");
     }
 
     const bucket = pickBucket();
@@ -71,7 +71,6 @@ export class SpinService {
 
     return {
       spinId: crypto.randomUUID(),
-      outcome: bucket,
       prizeId: prize.id,
       prizeAmount: prize.amount,
       targetVirtualIndex: findTargetVirtualIndex(prize.id),

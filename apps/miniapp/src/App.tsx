@@ -8,23 +8,25 @@ import { useSpin } from "./features/spin/hooks/useSpin";
 export default function App() {
   const {
     session,
-    isSessionLoading,
     isSpinning,
     isSubmittingSpin,
     spinTargetIndex,
     resultToast,
+    lastPrize,
     errorMessage,
     canSpin,
-    loadSession,
+    isAutoSpinEnabled,
     startSpin,
     finishSpinAnimation,
-    dismissResult
+    dismissResult,
+    toggleAutoSpin
   } = useSpin();
 
   useEffect(() => {
     initTelegramMiniApp();
-    void loadSession();
-  }, [loadSession]);
+  }, []);
+
+  const userInitial = session.user.displayName?.trim()?.charAt(0)?.toUpperCase() || "U";
 
   return (
     <div className="screen">
@@ -32,74 +34,58 @@ export default function App() {
 
       <main className="phone-shell">
         <header className="topbar">
-          <div>
-            <p className="topbar__eyebrow">Telegram mini app</p>
-            <h1>TON Spin</h1>
+          <div className="topbar__spin-meta">
+            1 SPIN • {formatTon(session.spinCost)}
           </div>
 
-          <div className="topbar__user">
-            <span>{session.user.displayName}</span>
+          <div className="topbar__right">
+            <div className="topbar__balance-chip">
+              <img className="ton-inline" src="/assets/ton.png" alt="TON" />
+              <span>{formatTon(session.balance)}</span>
+            </div>
+
+            <div className="topbar__avatar" aria-label={session.user.displayName}>
+              {userInitial}
+            </div>
           </div>
         </header>
 
-        <section className="hero-card">
-          <div className="hero-card__title-row">
-            <div>
-              <p className="hero-card__kicker">Серверный результат</p>
-              <h2>Вертикальная рулетка</h2>
-            </div>
-
-            <div className="hero-card__price-pill">1 TON / spin</div>
-          </div>
-
-          <p className="hero-card__description">
-            Сервер решает результат по схеме <strong>50/50</strong>, клиент только проигрывает
-            красивую анимацию и останавливается на заранее выбранной плитке.
-          </p>
-
+        <section className="reel-area">
           <SpinMachine
             spinTargetIndex={spinTargetIndex}
             isSpinning={isSpinning}
             onSpinAnimationEnd={finishSpinAnimation}
           />
+        </section>
 
-          <div className="balance-strip">
-            <div className="balance-strip__left">
-              <span className="balance-strip__label">Баланс</span>
-              <strong>{formatTon(session.balance)}</strong>
-            </div>
-
-            <div className="balance-strip__right">
-              <span className="balance-strip__label">Статус</span>
-              <strong>{isSpinning ? "Вращается..." : isSubmittingSpin ? "Готовим спин..." : "Готово"}</strong>
-            </div>
+        <footer className="bottom-bar">
+          <div className="bottom-bar__meta">
+            <span className="bottom-bar__meta-label">Last</span>
+            <strong>{lastPrize ? formatTon(lastPrize.prizeAmount) : "-"}</strong>
           </div>
 
           {errorMessage ? <div className="error-banner">{errorMessage}</div> : null}
 
           <div className="actions-row">
-            <button className="secondary-button" type="button" disabled>
-              Авто-спин
+            <button
+              className={`secondary-button ${isAutoSpinEnabled ? "is-active" : ""}`}
+              type="button"
+              disabled={!canSpin && !isAutoSpinEnabled}
+              onClick={toggleAutoSpin}
+            >
+              {isAutoSpinEnabled ? "Stop Auto Spin" : "Auto Spin"}
             </button>
 
             <button
               className="primary-button"
               type="button"
-              disabled={!canSpin || isSessionLoading || isSubmittingSpin}
+              disabled={!canSpin || isSubmittingSpin || isSpinning}
               onClick={() => void startSpin()}
             >
-              {isSessionLoading ? "Загрузка..." : isSubmittingSpin ? "Запрос..." : `Крутить за ${formatTon(session.spinCost)}`}
+              {isSpinning ? "Spinning..." : `Spin ${formatTon(session.spinCost)}`}
             </button>
           </div>
-        </section>
-
-        <section className="footnote-card">
-          <div className="footnote-card__badge">DEV NOTE</div>
-          <p>
-            Здесь уже есть нормальная база для расширения: бот, API, mini app, серверная
-            рулетка, разнесенные модули и анимированный UI.
-          </p>
-        </section>
+        </footer>
       </main>
 
       <ResultToast result={resultToast} onClose={dismissResult} />
