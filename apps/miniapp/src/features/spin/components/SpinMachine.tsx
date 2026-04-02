@@ -21,14 +21,62 @@ const MIN_LOOP_MS = 900;
 const SETTLE_DURATION_MS = 3400;
 const EXTRA_SETTLE_CYCLES = 2;
 
-/**
- * Update these IDs only if your prize catalog uses different names.
- * The component will automatically fall back to defaultStartIndex if none are found.
- */
 const SHOWCASE_BIG_PRIZE_IDS = ["ton-5", "ton-10", "ton-20", "ton-50"];
 
 function easeOutQuint(progress: number): number {
   return 1 - Math.pow(1 - progress, 5);
+}
+
+function shuffleArray<T>(items: T[]): T[] {
+  const next = [...items];
+
+  for (let i = next.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [next[i], next[j]] = [next[j], next[i]];
+  }
+
+  return next;
+}
+
+function findNearestPrizeIndex(reel: string[], prizeId: string, fromIndex: number): number {
+  const matches: number[] = [];
+
+  reel.forEach((id, index) => {
+    if (id === prizeId) {
+      matches.push(index);
+    }
+  });
+
+  if (matches.length === 0) {
+    return fromIndex;
+  }
+
+  let bestIndex = matches[0];
+  let bestDistance = Math.abs(matches[0] - fromIndex);
+
+  for (let i = 1; i < matches.length; i += 1) {
+    const distance = Math.abs(matches[i] - fromIndex);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      bestIndex = matches[i];
+    }
+  }
+
+  return bestIndex;
+}
+
+function buildIdleReel(reel: string[], centerPrizeId: string, centerIndex: number): string[] {
+  const shuffled = shuffleArray(reel);
+
+  const existingIndex = shuffled.findIndex((item) => item === centerPrizeId);
+
+  if (existingIndex >= 0) {
+    [shuffled[centerIndex], shuffled[existingIndex]] = [shuffled[existingIndex], shuffled[centerIndex]];
+  } else {
+    shuffled[centerIndex] = centerPrizeId;
+  }
+
+  return shuffled;
 }
 
 export function SpinMachine({
@@ -51,22 +99,21 @@ export function SpinMachine({
 
   const [shellHeight, setShellHeight] = useState(0);
 
-  const idleShowcaseIndex = useMemo(() => {
-    const showcaseSet = new Set(SHOWCASE_BIG_PRIZE_IDS);
-    const candidates: number[] = [];
+  const idleCenterPrizeId = useMemo(() => {
+    const availableBigPrizes = SHOWCASE_BIG_PRIZE_IDS.filter((id) => virtualReel.includes(id));
 
-    virtualReel.forEach((prizeId, index) => {
-      if (showcaseSet.has(prizeId)) {
-        candidates.push(index);
-      }
-    });
-
-    if (candidates.length === 0) {
-      return defaultStartIndex;
+    if (availableBigPrizes.length === 0) {
+      return virtualReel[defaultStartIndex];
     }
 
-    return candidates[Math.floor(Math.random() * candidates.length)];
+    return availableBigPrizes[Math.floor(Math.random() * availableBigPrizes.length)];
   }, []);
+
+  const idleReel = useMemo(() => {
+    return buildIdleReel(virtualReel, idleCenterPrizeId, defaultStartIndex);
+  }, [idleCenterPrizeId]);
+
+  const displayedReel = !hasSpunRef.current && !isSpinning ? idleReel : virtualReel;
 
   const getTranslateYForIndex = (index: number) => {
     const centerOffset = shellHeight / 2 - REEL_ITEM_HEIGHT / 2;
@@ -118,13 +165,13 @@ export function SpinMachine({
     }
 
     if (!hasSpunRef.current && !isSpinning) {
-      currentIndexRef.current = idleShowcaseIndex;
-      applyTransform(idleShowcaseIndex);
+      currentIndexRef.current = defaultStartIndex;
+      applyTransform(defaultStartIndex);
       return;
     }
 
     applyTransform(currentIndexRef.current);
-  }, [shellHeight, idleShowcaseIndex, isSpinning]);
+  }, [shellHeight, isSpinning]);
 
   useEffect(() => {
     if (shellHeight <= 0) {
@@ -149,6 +196,17 @@ export function SpinMachine({
     }
 
     if (modeRef.current === "idle") {
+      if (!hasSpunRef.current) {
+        const startingIndexInRealReel = findNearestPrizeIndex(
+          virtualReel,
+          idleCenterPrizeId,
+          defaultStartIndex
+        );
+
+        currentIndexRef.current = startingIndexInRealReel;
+        applyTransform(startingIndexInRealReel);
+      }
+
       hasSpunRef.current = true;
       modeRef.current = "loop";
       loopStartedAtRef.current = null;
@@ -230,14 +288,14 @@ export function SpinMachine({
     animationFrameRef.current = requestAnimationFrame(frame);
 
     return stopAnimation;
-  }, [isSpinning, onSpinAnimationEnd, shellHeight, spinTargetIndex]);
+  }, [isSpinning, onSpinAnimationEnd, shellHeight, spinTargetIndex, idleCenterPrizeId]);
 
   return (
     <div ref={shellRef} className={`reel-shell ${isSpinning ? "is-spinning" : ""}`}>
       <div className="reel-focus-frame" />
 
       <div ref={trackRef} className="reel-track">
-        {virtualReel.map((prizeId, index) => (
+        {displayedReel.map((prizeId, index) => (
           <div
             key={`${prizeId}-${index}`}
             className={`reel-track__row ${index === spinTargetIndex ? "is-target-row" : ""}`}
