@@ -2,6 +2,10 @@
 
 Simple Telegram mini app where you spin a reel and win TON rewards.
 
+# Demo Video
+
+🎥 https://www.youtube.com/watch?v=NPs--krGp-M
+
 ------------------------------------------------------------------------
 
 ## What is this?
